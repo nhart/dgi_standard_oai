@@ -1,0 +1,10 @@
+{
+    "name": "discoverygarden/dgi_standard_oai",
+    "type": "drupal-module",
+    "license": "GPL-3.0-only",
+    "require": {
+      "islandora/islandora": "^1",
+      "drupal/rest_oai_pmh": "*",
+      "drupal/entity_reference_revisions": "*"
+    }
+}
