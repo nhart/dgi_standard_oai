@@ -4,7 +4,7 @@ namespace Drupal\dgi_standard_oai\Plugin\OaiMetadataMap;
 
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Field\FieldItemInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList;
 use Drupal\islandora\IslandoraUtils;
@@ -121,22 +121,15 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, IslandoraUtils $utils) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->utils = $utils;
-    $this->entityTypeManager = $entity_type_manager;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
+    $plugin = new static(
+      $container,
       $configuration,
       $plugin_id,
-      $plugin_definition,
-      $container->get('entity_type.manager'),
-      $container->get('islandora.utils'));
+      $plugin_definition);
+    $plugin->entityTypeManager = $container->get('entity_type.manager');
+    $plugin->utils = $container->get('islandora.utils');
+    return $plugin;
   }
 
   /**
@@ -191,35 +184,24 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    */
   protected function addFields(ContentEntityInterface $entity) {
     foreach ($entity->getFields() as $field_name => $values) {
-      if (!$values->access() || $values->isEmpty()) {
-        continue;
-      }
       $metadata_field = $this->getMetadataField($field_name);
-      if (!$metadata_field) {
-        // Determine if this is a paragraph.
-        $paragraph_field = $this->getParagraphField($field_name);
-        if (!$paragraph_field) {
-          continue;
-        }
-        $this->addParagraph($paragraph_field, $values);
-        continue;
+      if ($metadata_field && !$values->isEmpty() && $values->access()) {
+        $this->addValues($values, $metadata_field);
       }
-
-      foreach ($values as $value) {
-        if ($metadata_field) {
-          $this->addValue($value, $metadata_field);
-        }
+      // Determine if this is a paragraph.
+      else if ($this->isParagraphField($field_name) && !$values->isEmpty() && $values->access()) {
+        $this->addParagraph($field_name, $values);
       }
+    }
 
-      // Add a link to the item, if it exists.
-      $term = $this->utils->getTermForUri('http://pcdm.org/use#OriginalFile');
-      if ($term) {
-        $media = $this->utils->getMediaWithTerm($entity, $term);
-        if ($media) {
-          $fid = $media->getSource()->getSourceFieldValue($media);
-          $file = $this->entityTypeManager->getStorage('file')->load($fid);
-          $this->elements['edm:preview'][] = $file->createFileUrl(FALSE);
-        }
+    // Add a link to the item, if it exists.
+    $term = $this->utils->getTermForUri('http://pcdm.org/use#OriginalFile');
+    if ($term) {
+      $media = $this->utils->getMediaWithTerm($entity, $term);
+      if ($media) {
+        $fid = $media->getSource()->getSourceFieldValue($media);
+        $file = $this->entityTypeManager->getStorage('file')->load($fid);
+        $this->elements['edm:preview'][] = $file->createFileUrl(FALSE);
       }
     }
   }
@@ -227,21 +209,17 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   /**
    * Adds a paragraph to the elements.
    *
-   * @param string[] $paragraph_mapping
-   *   A mapping of fields in the paragraph to their OAI counterpart.
+   * @param string $paragraph_name
+   *   The name of the paragraph field being processed.
    * @param Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList $values
    *   The paragraphs themselves.
    */
-  protected function addParagraph(array $paragraph_mapping, EntityReferenceRevisionsFieldItemList $values) {
+  protected function addParagraph($paragraph_name, EntityReferenceRevisionsFieldItemList $values) {
     foreach ($values as $value) {
       foreach ($value->entity->getFields() as $field_name => $field_values) {
-        if (!$field_values->access() || $field_values->isEmpty()) {
-          continue;
-        }
-        if (isset($paragraph_mapping[$field_name])) {
-          foreach ($field_values as $field_value) {
-            $this->addValue($field_value, $paragraph_mapping[$field_name]);
-          }
+        $mapped_field = $this->getParagraphField($paragraph_name, $field_name);
+        if ($mapped_field && !$field_values->isEmpty() && $field_values->access()) {
+          $this->addValues($field_values, $mapped_field);
         }
       }
     }
@@ -250,23 +228,25 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   /**
    * Adds a value to the elements using the given metadata field.
    *
-   * @param Drupal\Core\Field\FieldItemInterface $item
-   *   The item to get the value to add from.
+   * @param Drupal\Core\Field\FieldItemListInterface $item
+   *   The item list to get the values to add from.
    * @param string $metadata_field
-   *   The field to add to the elements array.
+   *   The field to add to the elements array using these values.
    */
-  protected function addValue(FieldItemInterface $item, $metadata_field) {
-    $index = $item->mainPropertyName();
-    if ($index === 'alias') {
-      return;
+  protected function addValues(FieldItemListInterface $items, $metadata_field) {
+    foreach ($items as $item) {
+      $index = $item->mainPropertyName();
+      if ($index === 'alias') {
+        return;
+      }
+      if ($index == 'target_id' && !empty($item->entity)) {
+        $value = $item->entity->label();
+      }
+      else {
+        $value = $item->getValue()[$index];
+      }
+      $this->elements[$metadata_field][] = $value;
     }
-    if ($index == 'target_id' && !empty($item->entity)) {
-      $value = $item->entity->label();
-    }
-    else {
-      $value = $item->getValue()[$index];
-    }
-    $this->elements[$metadata_field][] = $value;
   }
 
   /**
@@ -283,17 +263,32 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   }
 
   /**
-   * Helper to retrieve the paragraph field data for a paragraph.
+   * Helper to retrieve the metadata field for a Drupal field in a paragraph.
    *
    * @param string $paragraph_name
-   *   The paragraph to get renderable elements for.
+   *   The paragraph to get the metadata field for.
+   * @param string $field_name
+   *   The name of the field in the paragraph to get the metadata field for.
    *
-   * @return false|array
-   *   The array of field mapping for that paragraph if one exists, or FALSE
-   *   otherwise.
+   * @return false|string
+   *   The field mapping for that field within the paragraph if one exists, or
+   *   FALSE otherwise.
    */
-  protected function getParagraphField($paragraph_name) {
-    return $this->paragraphMapping[$paragraph_name] ?? FALSE;
+  protected function getParagraphField($paragraph_name, $field_name) {
+    return $this->paragraphMapping[$paragraph_name][$field_name] ?? FALSE;
+  }
+
+  /**
+   * Determines if a given paragraph, by name, has mapped metadata fields.
+   *
+   * @param string $paragraph_name
+   *   The name of the field to check.
+   *
+   * @return bool
+   *   Whether the given $paragraph_name has mapped metadata fields.
+   */
+  protected function isParagraphField($paragraph_name) {
+    return isset($this->paragraphMapping[$paragraph_name]);
   }
 
 }
