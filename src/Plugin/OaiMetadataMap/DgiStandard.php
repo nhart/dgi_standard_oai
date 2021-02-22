@@ -3,11 +3,10 @@
 namespace Drupal\dgi_standard_oai\Plugin\OaiMetadataMap;
 
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList;
-use Drupal\islandora\IslandoraUtils;
 use Drupal\rest_oai_pmh\Plugin\OaiMetadataMapBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -110,25 +109,25 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    * @var string[]
    */
   protected $linkedAgentMap = [
-    'relators:aut' =>	'dcterms:creator',
-    'relators:ato' =>	'dcterms:contributor',
-    'relators:cmp' =>	'dcterms:creator',
-    'relators:cnd' =>	'dcterms:contributor',
-    'relators:ctb' =>	'dcterms:contributor',
-    'relators:crp' =>	'dcterms:contributor',
-    'relators:cre' =>	'dcterms:creator',
-    'relators:dpc' =>	'dcterms:contributor',
-    'relators:drt' =>	'dcterms:contributor',
-    'relators:edt' =>	'dcterms:contributor',
-    'relators:ive' =>	'dcterms:creator',
-    'relators:ivr' =>	'dcterms:contributor',
-    'relators:prf' =>	'dcterms:contributor',
-    'relators:pht' =>	'dcterms:creator',
-    'relators:cph' =>	'dcterms:rightsHolder',
-    'relators:pbl' =>	'dcterms:contributor',
-    'relators:sgn' =>	'dcterms:contributor',
-    'relators:spk' =>	'dcterms:contributor',
-    'relators:spn' =>	'dcterms:contributor',
+    'relators:aut' => 'dcterms:creator',
+    'relators:ato' => 'dcterms:contributor',
+    'relators:cmp' => 'dcterms:creator',
+    'relators:cnd' => 'dcterms:contributor',
+    'relators:ctb' => 'dcterms:contributor',
+    'relators:crp' => 'dcterms:contributor',
+    'relators:cre' => 'dcterms:creator',
+    'relators:dpc' => 'dcterms:contributor',
+    'relators:drt' => 'dcterms:contributor',
+    'relators:edt' => 'dcterms:contributor',
+    'relators:ive' => 'dcterms:creator',
+    'relators:ivr' => 'dcterms:contributor',
+    'relators:prf' => 'dcterms:contributor',
+    'relators:pht' => 'dcterms:creator',
+    'relators:cph' => 'dcterms:rightsHolder',
+    'relators:pbl' => 'dcterms:contributor',
+    'relators:sgn' => 'dcterms:contributor',
+    'relators:spk' => 'dcterms:contributor',
+    'relators:spn' => 'dcterms:contributor',
     'realtors:vdg' => 'dcterms:contributor',
   ];
 
@@ -152,7 +151,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $plugin = is_subclass_of(parent::class, ContainerFactoryPluginInterface::class) ?
       parent::create($container, $configuration, $plugin_id, $plugin_definition) :
-      new static($container, $configuration, $plugin_id, $plugin_definition);
+      new static($configuration, $plugin_id, $plugin_definition);
     $plugin->entityTypeManager = $container->get('entity_type.manager');
     $plugin->utils = $container->get('islandora.utils');
     return $plugin;
@@ -210,16 +209,16 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    */
   protected function addFields(ContentEntityInterface $entity) {
     foreach ($entity->getFields() as $field_name => $values) {
-      if ($field_name == 'field_linked_agent' && $field_name == 'field_organizations') {
+      if ($field_name == 'field_linked_agent' || $field_name == 'field_organizations') {
         $this->addLinkedAgentValues($values);
         continue;
       }
       $metadata_field = $this->getMetadataField($field_name);
-      else if ($metadata_field && !$values->isEmpty() && $values->access()) {
+      if ($metadata_field && !$values->isEmpty() && $values->access()) {
         $this->addValues($values, $metadata_field);
       }
       // Determine if this is a paragraph.
-      else if ($this->isParagraphField($field_name) && !$values->isEmpty() && $values->access()) {
+      elseif ($this->isParagraphField($field_name) && !$values->isEmpty() && $values->access()) {
         $this->addParagraph($field_name, $values);
       }
     }
@@ -282,10 +281,10 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   /**
    * Adds values for a linked agent to the elements.
    *
-   * @param Drupal\Core\Field\FieldItemListInterface $items
+   * @param Drupal\Core\Field\EntityReferenceFieldItemListInterface $items
    *   The item list to get values from.
    */
-  protected function addLinkedAgentValues(FieldItemListInterface $items) {
+  protected function addLinkedAgentValues(EntityReferenceFieldItemListInterface $items) {
     foreach ($items as $item) {
       $metadata_field = $this->getLinkedAgentMetadataField($item->getValue()['rel_type']);
       if ($metadata_field) {
