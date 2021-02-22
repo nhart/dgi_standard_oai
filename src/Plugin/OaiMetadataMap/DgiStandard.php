@@ -274,7 +274,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
       else {
         $value = $item->getValue()[$index];
       }
-      $this->elements[$metadata_field][] = $value;
+      $this->elements[$metadata_field][] = strip_tags($value);
     }
   }
 
