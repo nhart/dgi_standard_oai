@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @OaiMetadataMap(
  *   id = "dgi_standard_oai",
- *   label = @Translation("DGI Standard (DPLAVA)"),
+ *   label = @Translation("DPLAVA"),
  *   metadata_format = "mdRecord",
  *   template = {
  *     "type" = "module",
@@ -105,6 +105,34 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   ];
 
   /**
+   * Mapping of linked agent types to terms.
+   *
+   * @var string[]
+   */
+  protected $linkedAgentMap = [
+    'relators:aut' =>	'dcterms:creator',
+    'relators:ato' =>	'dcterms:contributor',
+    'relators:cmp' =>	'dcterms:creator',
+    'relators:cnd' =>	'dcterms:contributor',
+    'relators:ctb' =>	'dcterms:contributor',
+    'relators:crp' =>	'dcterms:contributor',
+    'relators:cre' =>	'dcterms:creator',
+    'relators:dpc' =>	'dcterms:contributor',
+    'relators:drt' =>	'dcterms:contributor',
+    'relators:edt' =>	'dcterms:contributor',
+    'relators:ive' =>	'dcterms:creator',
+    'relators:ivr' =>	'dcterms:contributor',
+    'relators:prf' =>	'dcterms:contributor',
+    'relators:pht' =>	'dcterms:creator',
+    'relators:cph' =>	'dcterms:rightsHolder',
+    'relators:pbl' =>	'dcterms:contributor',
+    'relators:sgn' =>	'dcterms:contributor',
+    'relators:spk' =>	'dcterms:contributor',
+    'relators:spn' =>	'dcterms:contributor',
+    'realtors:vdg' => 'dcterms:contributor',
+  ];
+
+  /**
    * Entity type manager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
@@ -122,11 +150,9 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    $plugin = new static(
-      $container,
-      $configuration,
-      $plugin_id,
-      $plugin_definition);
+    $plugin = is_subclass_of(parent::class, ContainerFactoryPluginInterface::class) ?
+      parent::create($container, $configuration, $plugin_id, $plugin_definition) :
+      new static($container, $configuration, $plugin_id, $plugin_definition);
     $plugin->entityTypeManager = $container->get('entity_type.manager');
     $plugin->utils = $container->get('islandora.utils');
     return $plugin;
@@ -184,8 +210,12 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    */
   protected function addFields(ContentEntityInterface $entity) {
     foreach ($entity->getFields() as $field_name => $values) {
+      if ($field_name == 'field_linked_agent' && $field_name == 'field_organizations') {
+        $this->addLinkedAgentValues($values);
+        continue;
+      }
       $metadata_field = $this->getMetadataField($field_name);
-      if ($metadata_field && !$values->isEmpty() && $values->access()) {
+      else if ($metadata_field && !$values->isEmpty() && $values->access()) {
         $this->addValues($values, $metadata_field);
       }
       // Determine if this is a paragraph.
@@ -228,7 +258,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   /**
    * Adds a value to the elements using the given metadata field.
    *
-   * @param Drupal\Core\Field\FieldItemListInterface $item
+   * @param Drupal\Core\Field\FieldItemListInterface $items
    *   The item list to get the values to add from.
    * @param string $metadata_field
    *   The field to add to the elements array using these values.
@@ -246,6 +276,21 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
         $value = $item->getValue()[$index];
       }
       $this->elements[$metadata_field][] = $value;
+    }
+  }
+
+  /**
+   * Adds values for a linked agent to the elements.
+   *
+   * @param Drupal\Core\Field\FieldItemListInterface $items
+   *   The item list to get values from.
+   */
+  protected function addLinkedAgentValues(FieldItemListInterface $items) {
+    foreach ($items as $item) {
+      $metadata_field = $this->getLinkedAgentMetadataField($item->getValue()['rel_type']);
+      if ($metadata_field) {
+        $this->elements[$metadata_field] = $item->entity->label();
+      }
     }
   }
 
@@ -276,6 +321,19 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    */
   protected function getParagraphField($paragraph_name, $field_name) {
     return $this->paragraphMapping[$paragraph_name][$field_name] ?? FALSE;
+  }
+
+  /**
+   * Helper to retrieve the mapped field for a linked agent.
+   *
+   * @param string $rel_type
+   *   The linked agent type.
+   *
+   * @return false|string
+   *   The mapped field, or FALSE if the linked agent type is unhandled.
+   */
+  protected function getLinkedAgentMetadataField($rel_type) {
+    return $this->linkedAgentMap[$rel_type] ?? FALSE;
   }
 
   /**
