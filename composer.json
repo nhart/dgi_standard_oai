@@ -4,7 +4,7 @@
     "license": "GPL-3.0-only",
     "require": {
       "islandora/islandora": "^1",
-      "drupal/rest_oai_pmh": "^1",
+      "drupal/rest_oai_pmh": "8.x-1.x-hotfixes-dev",
       "drupal/entity_reference_revisions": "^1.8"
     }
 }
