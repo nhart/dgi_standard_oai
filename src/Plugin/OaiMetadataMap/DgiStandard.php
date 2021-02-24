@@ -288,7 +288,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
     foreach ($items as $item) {
       $metadata_field = $this->getLinkedAgentMetadataField($item->getValue()['rel_type']);
       if ($metadata_field) {
-        $this->elements[$metadata_field] = $item->entity->label();
+        $this->elements[$metadata_field][] = $item->entity->label();
       }
     }
   }
