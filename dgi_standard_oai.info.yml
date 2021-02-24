@@ -1,0 +1,9 @@
+name: DGI Standard OAI
+description: Standard OAI implementation for the DGI Islandora content type.
+package: DGI Helpers
+type: module
+core_version_requirement: ^8 || ^9
+dependencies:
+  - islandora:islandora
+  - rest_oai_pmh:rest_oai_pmh
+  - entity_reference_revisions:entity_reference_revisions
