@@ -96,6 +96,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
       'field_date_modified' => 'dcterms:date',
       'field_copyright_date' => 'dcterms:date',
       'field_publisher' => 'dcterms:publisher',
+      'field_other_date' => 'dcterms:date',
     ],
     'field_related_item' => [
       'field_title' => 'dcterms:relation',
@@ -213,6 +214,12 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
         $this->addLinkedAgentValues($values);
         continue;
       }
+      elseif ($field_name == 'field_title') {
+        $this->handleTitleParagraphs($values);
+      }
+      elseif ($field_name == 'field_note_paragraph') {
+        $this->handleNoteParagraphs($values);
+      }
       $metadata_field = $this->getMetadataField($field_name);
       if ($metadata_field && !$values->isEmpty() && $values->access()) {
         $this->addValues($values, $metadata_field);
@@ -249,6 +256,47 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
         $mapped_field = $this->getParagraphField($paragraph_name, $field_name);
         if ($mapped_field && !$field_values->isEmpty() && $field_values->access()) {
           $this->addValues($field_values, $mapped_field);
+        }
+      }
+    }
+  }
+
+  /**
+   * Adds a title paragraph to the elements.
+   *
+   * @param Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList $values
+   *   The list of title paragraphs.
+   */
+  protected function handleTitleParagraphs(EntityReferenceRevisionsFieldItemList $values) {
+    foreach ($values as $value) {
+      if ($value->entity->access('view')) {
+        $title = $value->entity->get('field_title');
+        if (!$title->isEmpty() && $title->access()) {
+          $alt = $value->entity->get('field_title_type');
+          $dest = !$alt->isEmpty() ? 'dcterms:alternative' : 'dcterms:title';
+          $this->elements[$dest][] = $title->getString();
+        }
+      }
+    }
+  }
+
+  /**
+   * Adds a note paragraph to the elements.
+   *
+   * @param Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList $values
+   *   The list of title paragraphs.
+   */
+  protected function handleNoteParagraphs(EntityReferenceRevisionsFieldItemList $values) {
+    foreach ($values as $value) {
+      if ($value->entity->access('view')) {
+        $note = $value->entity->get('field_note');
+        if ($note->isEmpty() && $note->access()) {
+          $dest = 'dcterms:description';
+          $note_type = $value->entity->get('field_note_type');
+          if (!$note_type->isEmpty() && $note_type->getString() == 'provenance') {
+            $dest = 'dc:provenance';
+          }
+          $this->elements[$dest][] = $note->getString();
         }
       }
     }
