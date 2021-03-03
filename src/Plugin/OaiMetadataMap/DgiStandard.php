@@ -80,6 +80,10 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
       'field_geographic_geographic_subd' => 'dcterms:spatial',
     ],
     'field_hierarchical_geographic_su' => [
+      'field_continent' => 'dcterms:spatial',
+      'field_country' => 'dcterms:spatial',
+      'field_region' => 'dcterms:spatial',
+      'field_state' => 'dcterms:spatial',
       'field_territory' => 'dcterms:spatial',
       'field_county' => 'dcterms:spatial',
       'field_city' => 'dcterms:spatial',
@@ -290,7 +294,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
     foreach ($values as $value) {
       if ($value->entity->access('view')) {
         $note = $value->entity->get('field_note');
-        if ($note->isEmpty() && $note->access()) {
+        if (!$note->isEmpty() && $note->access()) {
           $dest = 'dcterms:description';
           $note_type = $value->entity->get('field_note_type');
           if (!$note_type->isEmpty() && $note_type->getString() == 'provenance') {
