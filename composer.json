@@ -3,7 +3,7 @@
     "type": "drupal-module",
     "license": "GPL-3.0-only",
     "require": {
-      "islandora/islandora": "^1",
+      "islandora/islandora": "^1 || ^2",
       "drupal/rest_oai_pmh": "^1.0@beta",
       "drupal/entity_reference_revisions": "^1.8"
     }
