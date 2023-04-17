@@ -154,7 +154,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
   /**
    * Discovery Garden Image Discovery.
    *
-   * @var \Drupal\dgi_image_discovery\ImageDiscovery;
+   * @var \Drupal\dgi_image_discovery\ImageDiscovery
    */
   protected ImageDiscovery $imageDiscovery;
 
@@ -359,7 +359,6 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    *
    * @param \Drupal\Core\Entity\ContentEntityInterface $entity
    *   The entity being rendered.
-   *
    * @param string $dest
    *   The destination index for the thumbnail.
    * @param bool $alias
