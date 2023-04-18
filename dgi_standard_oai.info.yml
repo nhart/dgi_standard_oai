@@ -7,3 +7,4 @@ dependencies:
   - islandora:islandora
   - rest_oai_pmh:rest_oai_pmh
   - entity_reference_revisions:entity_reference_revisions
+  - dgi_image_discovery:dgi_image_discovery

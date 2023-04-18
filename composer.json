@@ -1,10 +1,11 @@
 {
-    "name": "discoverygarden/dgi_standard_oai",
-    "type": "drupal-module",
-    "license": "GPL-3.0-only",
-    "require": {
-      "islandora/islandora": "^1 || ^2",
-      "drupal/rest_oai_pmh": "^2.0@beta",
-      "drupal/entity_reference_revisions": "^1.8"
-    }
+  "name": "discoverygarden/dgi_standard_oai",
+  "type": "drupal-module",
+  "license": "GPL-3.0-only",
+  "require": {
+    "islandora/islandora": "^1 || ^2",
+    "drupal/rest_oai_pmh": "^2.0@beta",
+    "drupal/entity_reference_revisions": "^1.8",
+    "discoverygarden/dgi_image_discovery": "^1"
+  }
 }

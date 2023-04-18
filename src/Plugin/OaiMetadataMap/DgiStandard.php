@@ -3,11 +3,13 @@
 namespace Drupal\dgi_standard_oai\Plugin\OaiMetadataMap;
 
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\dgi_image_discovery\ImageDiscovery;
 use Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList;
+use Drupal\islandora\IslandoraUtils;
 use Drupal\rest_oai_pmh\Plugin\OaiMetadataMapBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -362,7 +364,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    * @param string $dest
    *   The destination index for the thumbnail.
    * @param bool $alias
-   *   If the uri should be an alias.
+   *   If the url should be an alias.
    */
   protected function addPersistentUrl(ContentEntityInterface $entity, $dest, $alias) {
     $optons = [
