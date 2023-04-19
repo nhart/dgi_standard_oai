@@ -3,10 +3,13 @@
 namespace Drupal\dgi_standard_oai\Plugin\OaiMetadataMap;
 
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\dgi_image_discovery\ImageDiscovery;
 use Drupal\entity_reference_revisions\EntityReferenceRevisionsFieldItemList;
+use Drupal\islandora\IslandoraUtils;
 use Drupal\rest_oai_pmh\Plugin\OaiMetadataMapBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -141,14 +144,21 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $entityTypeManager;
+  protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
    * Islandora utilities.
    *
    * @var \Drupal\islandora\IslandoraUtils
    */
-  protected $utils;
+  protected IslandoraUtils $utils;
+
+  /**
+   * Discovery Garden Image Discovery.
+   *
+   * @var \Drupal\dgi_image_discovery\ImageDiscovery
+   */
+  protected ImageDiscovery $imageDiscovery;
 
   /**
    * {@inheritdoc}
@@ -159,6 +169,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
       new static($configuration, $plugin_id, $plugin_definition);
     $plugin->entityTypeManager = $container->get('entity_type.manager');
     $plugin->utils = $container->get('islandora.utils');
+    $plugin->imageDiscovery = $container->get('dgi_image_discovery.service');
     return $plugin;
   }
 
@@ -342,6 +353,44 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
       if ($metadata_field) {
         $this->elements[$metadata_field][] = $item->entity->label();
       }
+    }
+  }
+
+  /**
+   * Adds persistent URL to the elements.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity being rendered.
+   * @param string $dest
+   *   The destination index for the thumbnail.
+   * @param bool $alias
+   *   If the url should be an alias.
+   */
+  protected function addPersistentUrl(ContentEntityInterface $entity, $dest, $alias) {
+    $optons = [
+      'absolute' => TRUE,
+      'alias' => $alias,
+    ];
+    $this->elements[$dest][] = $entity->toUrl('canonical', $optons)->toString();
+  }
+
+  /**
+   * Adds thumbnail to the elements.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity being rendered.
+   * @param string $dest
+   *   The destination index for the thumbnail.
+   */
+  public function addThumbnail(ContentEntityInterface $entity, $dest) {
+    $event = $this->imageDiscovery->getImage($entity);
+
+    if ($event->hasMedia()) {
+      $media = $event->getMedia();
+
+      $fid = $media->getSource()->getSourceFieldValue($media);
+      $file = $this->entityTypeManager->getStorage('file')->load($fid);
+      $this->elements[$dest][] = $file->createFileUrl(FALSE);
     }
   }
 
