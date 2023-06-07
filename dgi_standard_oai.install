@@ -9,6 +9,7 @@ use Discoverygarden\UpdateHelper;
 
 /**
  * Ensure the dgi_image_discovery module is enabled.
+ *
  * @throws \Drupal\Core\Utility\UpdateException
  */
 function dgi_standard_oai_update_9001() {
