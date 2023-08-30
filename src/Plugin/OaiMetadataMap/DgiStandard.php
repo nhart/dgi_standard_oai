@@ -255,6 +255,9 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
         $this->elements['edm:preview'][] = $file->createFileUrl(FALSE);
       }
     }
+
+    $this->addPersistentUrl($entity, 'dcterms:identifier', TRUE);
+    $this->addThumbnail($entity, 'dcterms:identifier');
   }
 
   /**
