@@ -43,7 +43,7 @@ class DgiStandard extends OaiMetadataMapBase implements ContainerFactoryPluginIn
    * @var string[]
    */
   protected $fieldMapping = [
-    'field_member_of' => 'dcterms:isPartOf',
+    'field_member_of' => 'dcterms:isPartOf-nelson-showing-jess-git-hub',
     'field_resource_type' => 'dcterms:type',
     'field_table_of_contents' => 'dcterms:description',
     'field_description' => 'dcterms:description',
